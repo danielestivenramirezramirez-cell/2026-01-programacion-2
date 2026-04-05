@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 class Paciente:
     def __init__(self, cedula, nombre, telefono, tipo_cliente, tipo_atencion, cantidad, prioridad, fecha):
@@ -41,28 +42,28 @@ def menu():
             break
 
         elif opcion == "1":
-            # 1. CÉDULA: Solo números y no vacío
+            # 1. CÉDULA
             while True:
                 cedula = input("Cédula: ").strip()
                 if cedula.isdigit() and len(cedula) > 0:
                     break
                 print("❌ Error: La cédula debe ser solo números.")
 
-            # 2. NOMBRE: Solo letras/espacios y no vacío
+            # 2. NOMBRE
             while True:
                 nombre = input("Nombre completo: ").strip()
                 if nombre.replace(" ", "").isalpha() and len(nombre) > 0:
                     break
                 print("❌ Error: El nombre solo debe contener letras.")
 
-            # 3. TELÉFONO: Solo números y no vacío
+            # 3. TELÉFONO
             while True:
                 telefono = input("Teléfono: ").strip()
                 if telefono.isdigit() and len(telefono) > 0:
                     break
                 print("❌ Error: El teléfono debe ser numérico.")
             
-            # 4. TIPO CLIENTE: Validación contra diccionario
+            # 4. TIPO CLIENTE
             while True:
                 print("\nTipos: Particular, EPS, Prepagada")
                 t_cliente = input("Tipo Cliente: ").strip().capitalize()
@@ -71,7 +72,7 @@ def menu():
                     break
                 print("❌ Error: Opción no válida.")
 
-            # 5. ATENCIÓN: Validación contra diccionario
+            # 5. ATENCIÓN
             while True:
                 print("\nAtenciones: Limpieza, Calzas, Extracción, Diagnóstico")
                 t_atencion = input("Tipo Atención: ").strip().capitalize()
@@ -80,7 +81,7 @@ def menu():
                     break
                 print("❌ Error: Atención no reconocida.")
 
-            # 6. CANTIDAD: Regla de negocio (1 para limpieza/diagnóstico)
+            # 6. CANTIDAD
             if t_atencion in ["Limpieza", "Diagnóstico"]:
                 cantidad = 1
             else:
@@ -92,7 +93,22 @@ def menu():
                     print("❌ Error: Ingrese un número mayor a 0.")
 
             prioridad = input("Prioridad (Normal/Urgente): ").strip().capitalize()
-            fecha = input("Fecha cita (DD/MM/AAAA): ")
+            
+            # --- VALIDACIÓN DE FECHA ORGANIZADA ---
+            while True:
+                fecha_in = input("Fecha cita (DD/MM/AAAA): ").strip()
+                try:
+                    # Verifica que el formato sea correcto y que el día/mes existan
+                    fecha_dt = datetime.strptime(fecha_in, "%d/%m/%Y")
+                    
+                    # Verifica que el año sea 2026 o más
+                    if fecha_dt.year >= 2026:
+                        fecha = fecha_in
+                        break
+                    else:
+                        print("❌ Error: El año debe ser 2026 o posterior.")
+                except ValueError:
+                    print("❌ Error: Fecha inválida o formato incorrecto (DD/MM/AAAA).")
 
             # Guardar en el arreglo en memoria
             nuevo_p = Paciente(cedula, nombre, telefono, t_cliente, t_atencion, cantidad, prioridad, fecha)
@@ -104,15 +120,13 @@ def menu():
             if not lista_pacientes:
                 print("\nNo hay pacientes registrados.")
             else:
-                # Ordenamiento de mayor a menor por valor total
                 lista_pacientes.sort(key=lambda x: x.valor_total, reverse=True)
                 print("\n" + "="*75)
-                print(f"{'NOMBRE':<20} | {'TIPO':<10} | {'ATENCIÓN':<12} | {'TOTAL':<10}")
+                print(f"{'NOMBRE':<20} | {'FECHA':<12} | {'ATENCIÓN':<12} | {'TOTAL':<10}")
                 print("-" * 75)
                 for p in lista_pacientes:
-                    print(f"{p.nombre[:20]:<20} | {p.tipo_cliente:<10} | {p.tipo_atencion:<12} | ${p.valor_total:,}")
+                    print(f"{p.nombre[:20]:<20} | {p.fecha:<12} | {p.tipo_atencion:<12} | ${p.valor_total:,}")
                 print("-" * 75)
-                # Cálculos finales solicitados
                 ingresos = sum(p.valor_total for p in lista_pacientes)
                 extrac = sum(1 for p in lista_pacientes if p.tipo_atencion == "Extracción")
                 print(f"Total Clientes: {len(lista_pacientes)} | Ingresos: ${ingresos:,} | Extracciones: {extrac}")
@@ -122,7 +136,8 @@ def menu():
             busqueda = input("\nCédula a buscar: ")
             encontrado = next((p for p in lista_pacientes if p.cedula == busqueda), None)
             if encontrado:
-                print(f"\n✅ Encontrado: {encontrado.nombre} | Total: ${encontrado.valor_total:,}")
+                print(f"\n✅ Encontrado: {encontrado.nombre}")
+                print(f"Fecha: {encontrado.fecha} | Total: ${encontrado.valor_total:,}")
             else:
                 print("\n❌ Cédula no registrada.")
             input("\nPresione Enter para volver...")
