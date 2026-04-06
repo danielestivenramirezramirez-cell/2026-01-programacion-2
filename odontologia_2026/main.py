@@ -14,14 +14,22 @@ class Paciente:
         self.valor_total = self.calcular_pago()
 
     def calcular_pago(self):
-        precios_cita = {"Particular": 80000, "EPS": 5000, "Prepagada": 30000}
+        # --- VALORES SEGÚN TU TABLA DE PRECIOS ---
+        precios_cita = {
+            "Particular": 80000, 
+            "EPS": 5000, 
+            "Prepagada": 30000
+        }
+        
         precios_atencion = {
             "Particular": {"Limpieza": 60000, "Calzas": 80000, "Extracción": 100000, "Diagnóstico": 50000},
-            "EPS": {"Limpieza": 0, "Calzas": 40000, "Extracción": 40000, "Diagnóstico": 0},
-            "Prepagada": {"Limpieza": 0, "Calzas": 10000, "Extracción": 10000, "Diagnóstico": 0}
+            "EPS":        {"Limpieza": 0,     "Calzas": 40000, "Extracción": 40000,  "Diagnóstico": 0},
+            "Prepagada":  {"Limpieza": 0,     "Calzas": 10000, "Extracción": 10000,  "Diagnóstico": 0}
         }
-        v_cita = precios_cita[self.tipo_cliente]
-        v_atencion = precios_atencion[self.tipo_cliente][self.tipo_atencion]
+        
+        v_cita = precios_cita.get(self.tipo_cliente, 0)
+        v_atencion = precios_atencion.get(self.tipo_cliente, {}).get(self.tipo_atencion, 0)
+        
         return v_cita + (v_atencion * self.cantidad)
 
 def menu():
@@ -31,7 +39,7 @@ def menu():
         os.system('cls' if os.name == 'nt' else 'clear')
         print("=== SISTEMA CONSULTORIO ODONTOLÓGICO ===")
         print("1. Registrar nuevo paciente")
-        print("2. Ver reporte general (Ordenado por valor)")
+        print("2. Ver reporte general (Detallado)")
         print("3. Buscar por cédula")
         print("4. Salir")
         
@@ -42,12 +50,12 @@ def menu():
             break
 
         elif opcion == "1":
-            # 1. CÉDULA
+            # 1. CÉDULA (Hasta 10 dígitos)
             while True:
-                cedula = input("Cédula: ").strip()
-                if cedula.isdigit() and len(cedula) > 0:
+                cedula = input("Cédula (Máximo 10 dígitos): ").strip()
+                if cedula.isdigit() and 1 <= len(cedula) <= 10:
                     break
-                print("❌ Error: La cédula debe ser solo números.")
+                print("❌ Error: La cédula debe ser numérica y tener entre 1 y 10 dígitos.")
 
             # 2. NOMBRE
             while True:
@@ -56,12 +64,12 @@ def menu():
                     break
                 print("❌ Error: El nombre solo debe contener letras.")
 
-            # 3. TELÉFONO
+            # 3. TELÉFONO (Exactamente 10 dígitos)
             while True:
-                telefono = input("Teléfono: ").strip()
-                if telefono.isdigit() and len(telefono) > 0:
+                telefono = input("Teléfono (10 dígitos): ").strip()
+                if telefono.isdigit() and len(telefono) == 10:
                     break
-                print("❌ Error: El teléfono debe ser numérico.")
+                print("❌ Error: El teléfono debe tener exactamente 10 números.")
             
             # 4. TIPO CLIENTE
             while True:
@@ -92,28 +100,30 @@ def menu():
                         break
                     print("❌ Error: Ingrese un número mayor a 0.")
 
-            prioridad = input("Prioridad (Normal/Urgente): ").strip().capitalize()
+            # 7. PRIORIDAD
+            while True:
+                pri_in = input("Prioridad (Normal/Urgente): ").strip().capitalize()
+                if pri_in in ["Normal", "Urgente"]:
+                    prioridad = pri_in
+                    break
+                print("❌ Error: Escriba 'Normal' o 'Urgente'.")
             
-            # --- VALIDACIÓN DE FECHA ORGANIZADA ---
+            # 8. FECHA
             while True:
                 fecha_in = input("Fecha cita (DD/MM/AAAA): ").strip()
                 try:
-                    # Verifica que el formato sea correcto y que el día/mes existan
                     fecha_dt = datetime.strptime(fecha_in, "%d/%m/%Y")
-                    
-                    # Verifica que el año sea 2026 o más
                     if fecha_dt.year >= 2026:
                         fecha = fecha_in
                         break
                     else:
                         print("❌ Error: El año debe ser 2026 o posterior.")
                 except ValueError:
-                    print("❌ Error: Fecha inválida o formato incorrecto (DD/MM/AAAA).")
+                    print("❌ Error: Formato incorrecto (DD/MM/AAAA).")
 
-            # Guardar en el arreglo en memoria
             nuevo_p = Paciente(cedula, nombre, telefono, t_cliente, t_atencion, cantidad, prioridad, fecha)
             lista_pacientes.append(nuevo_p)
-            print(f"\n✅ ¡Paciente {nombre} registrado!")
+            print(f"\n✅ ¡Paciente {nombre} registrado exitosamente!")
             input("Presione Enter para continuar...")
 
         elif opcion == "2":
@@ -121,23 +131,30 @@ def menu():
                 print("\nNo hay pacientes registrados.")
             else:
                 lista_pacientes.sort(key=lambda x: x.valor_total, reverse=True)
-                print("\n" + "="*75)
-                print(f"{'NOMBRE':<20} | {'FECHA':<12} | {'ATENCIÓN':<12} | {'TOTAL':<10}")
-                print("-" * 75)
+                
+                # Reporte más ancho para que quepa la atención y prioridad
+                print("\n" + "="*110)
+                print(f"{'NOMBRE':<18} | {'CÉDULA':<11} | {'ATENCIÓN':<12} | {'PRIORIDAD':<10} | {'FECHA':<10} | {'TOTAL':<10}")
+                print("-" * 110)
+                
                 for p in lista_pacientes:
-                    print(f"{p.nombre[:20]:<20} | {p.fecha:<12} | {p.tipo_atencion:<12} | ${p.valor_total:,}")
-                print("-" * 75)
+                    # Resaltamos si es Urgente
+                    pri_visual = f"*{p.prioridad}*" if p.prioridad == "Urgente" else p.prioridad
+                    print(f"{p.nombre[:18]:<18} | {p.cedula:<11} | {p.tipo_atencion:<12} | {pri_visual:<10} | {p.fecha:<10} | ${p.valor_total:,}")
+                
+                print("-" * 110)
                 ingresos = sum(p.valor_total for p in lista_pacientes)
-                extrac = sum(1 for p in lista_pacientes if p.tipo_atencion == "Extracción")
-                print(f"Total Clientes: {len(lista_pacientes)} | Ingresos: ${ingresos:,} | Extracciones: {extrac}")
+                print(f"Total Pacientes: {len(lista_pacientes)} | Ingresos Totales: ${ingresos:,}")
+            
             input("\nPresione Enter para volver...")
 
         elif opcion == "3":
-            busqueda = input("\nCédula a buscar: ")
+            busqueda = input("\nCédula a buscar: ").strip()
             encontrado = next((p for p in lista_pacientes if p.cedula == busqueda), None)
             if encontrado:
                 print(f"\n✅ Encontrado: {encontrado.nombre}")
-                print(f"Fecha: {encontrado.fecha} | Total: ${encontrado.valor_total:,}")
+                print(f"Atención: {encontrado.tipo_atencion} ({encontrado.prioridad})")
+                print(f"Teléfono: {encontrado.telefono} | Total: ${encontrado.valor_total:,}")
             else:
                 print("\n❌ Cédula no registrada.")
             input("\nPresione Enter para volver...")
