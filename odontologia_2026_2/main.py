@@ -11,7 +11,7 @@ class Paciente:
         self.cantidad = int(cantidad)
         self.prioridad = prioridad.capitalize()
         self.fecha_str = fecha
-        # Convertimos fecha a objeto datetime para poder ordenar
+        
         try:
             self.fecha_obj = datetime.strptime(fecha, "%d/%m/%Y")
         except ValueError:
@@ -20,13 +20,14 @@ class Paciente:
         self.valor_total = self.calcular_pago()
 
     def calcular_pago(self):
+        # Precios basados en la tabla proporcionada
         precios_cita = {"Particular": 80000, "EPS": 5000, "Prepagada": 30000}
         precios_atencion = {
             "Particular": {"Limpieza": 60000, "Calzas": 80000, "Extracción": 100000, "Diagnóstico": 50000},
-            "EPS": {"Limpieza": 0, "Calzas": 40000, "Extracción": 40000, "Diagnóstico": 0},
-            "Prepagada": {"Limpieza": 0, "Calzas": 10000, "Extracción": 10000, "Diagnóstico": 0}
+            "EPS":        {"Limpieza": 0,     "Calzas": 40000, "Extracción": 40000,  "Diagnóstico": 0},
+            "Prepagada":  {"Limpieza": 0,     "Calzas": 10000, "Extracción": 10000,  "Diagnóstico": 0}
         }
-        # Validación de seguridad para evitar errores de clave
+        
         v_cita = precios_cita.get(self.tipo_cliente, 80000)
         v_atencion = precios_atencion.get(self.tipo_cliente, {}).get(self.tipo_atencion, 0)
         return v_cita + (v_atencion * self.cantidad)
@@ -34,8 +35,8 @@ class Paciente:
 class GestionOdontologica:
     def __init__(self):
         self.lista_general = []
-        self.cola_atencion = [] # Agenda diaria (Cola - FIFO)
-        self.pila_urgencias = [] # Contingencia (Pila - LIFO)
+        self.cola_atencion = [] 
+        self.pila_urgencias = [] 
 
     def registrar_paciente(self, paciente):
         self.lista_general.append(paciente)
@@ -43,28 +44,23 @@ class GestionOdontologica:
         print(f"\n✅ Paciente {paciente.nombre} registrado en la agenda diaria.")
 
     def generar_pila_contingencia(self):
-        # Filtramos: Solo Extracciones + Urgente
-        # Usamos .lower() y reemplazamos tildes para que la búsqueda sea flexible
         filtrados = [p for p in self.lista_general 
                      if ("extrac" in p.tipo_atencion.lower()) and (p.prioridad == "Urgente")]
-        
-        # Ordenar por fecha (de lejana a cercana para que el pop() saque la más próxima)
         filtrados.sort(key=lambda x: x.fecha_obj, reverse=True)
         self.pila_urgencias = filtrados
 
     def mostrar_pila_informe(self):
-        print("\n" + "="*45)
+        print("\n" + "="*55)
         print("📋 PILA DE CONTINGENCIA (EXTRACCIONES URGENTES)")
-        print("Orden: Primero los de fecha más cercana")
-        print("="*45)
+        print("="*55)
         if not self.pila_urgencias:
             print("No hay pacientes urgentes para extracción.")
         else:
             temp_pila = list(self.pila_urgencias)
             while temp_pila:
                 p = temp_pila.pop() 
-                print(f"FECHA: {p.fecha_str} | ID: {p.cedula} | {p.nombre}")
-        print("="*45)
+                print(f"FECHA: {p.fecha_str} | ID: {p.cedula:<10} | {p.nombre}")
+        print("="*55)
 
     def atender_cola_diaria(self):
         print("\n" + "="*45)
@@ -87,7 +83,7 @@ def menu():
         print("1. Registrar nuevo paciente (Añadir a Agenda)")
         print("2. Generar Plan de Contingencia (Pila de Urgencias)")
         print("3. Atender siguiente paciente (Cola Diaria)")
-        print("4. Ver reporte general ordenado por valor")
+        print("4. Ver reporte detallado (Con Cédula)")
         print("5. Salir")
         
         opcion = input("\nSeleccione una opción: ").strip()
@@ -97,9 +93,23 @@ def menu():
             break
 
         elif opcion == "1":
-            cedula = input("Cédula: ").strip()
-            nombre = input("Nombre completo: ").strip()
-            telefono = input("Teléfono: ").strip()
+            while True:
+                cedula = input("Cédula (1-10 dígitos): ").strip()
+                if cedula.isdigit() and 1 <= len(cedula) <= 10:
+                    break
+                print("❌ Error: La cédula debe ser numérica y máximo 10 dígitos.")
+
+            while True:
+                nombre = input("Nombre completo: ").strip()
+                if nombre.replace(" ", "").isalpha() and len(nombre) > 0:
+                    break
+                print("❌ Error: Use solo letras.")
+
+            while True:
+                telefono = input("Teléfono (10 dígitos): ").strip()
+                if telefono.isdigit() and len(telefono) == 10:
+                    break
+                print("❌ Error: El teléfono debe tener exactamente 10 números.")
             
             print("\nTipos: Particular, EPS, Prepagada")
             t_cliente = input("Tipo Cliente: ").strip().capitalize()
@@ -111,26 +121,30 @@ def menu():
 
             cantidad = 1
             if t_atencion not in ["Limpieza", "Diagnóstico"]:
-                cantidad_in = input(f"Cantidad de {t_atencion}: ")
-                cantidad = int(cantidad_in) if cantidad_in.isdigit() else 1
+                while True:
+                    cantidad_in = input(f"Cantidad de {t_atencion}: ")
+                    if cantidad_in.isdigit() and int(cantidad_in) > 0:
+                        cantidad = int(cantidad_in)
+                        break
+                    print("❌ Error: Ingrese un número válido.")
 
-            prioridad = input("Prioridad (Normal/Urgente): ").strip().capitalize()
+            while True:
+                prioridad = input("Prioridad (Normal/Urgente): ").strip().capitalize()
+                if prioridad in ["Normal", "Urgente"]:
+                    break
+                print("❌ Error: Elija 'Normal' o 'Urgente'.")
 
-            # --- NUEVA VALIDACIÓN DE FECHA ---
             while True:
                 fecha_in = input("Fecha cita (DD/MM/AAAA): ").strip()
                 try:
-                    # strptime valida automáticamente que el día y mes sean reales (1-12)
                     f_valida = datetime.strptime(fecha_in, "%d/%m/%Y")
-                    
-                    # Validamos que el año sea 2026 en adelante
                     if f_valida.year >= 2026:
                         fecha = fecha_in
                         break
                     else:
-                        print("❌ Error: El año debe ser 2026 o posterior.")
+                        print("❌ Error: Año 2026 o posterior.")
                 except ValueError:
-                    print("❌ Error: Formato incorrecto o fecha inexistente. Use DD/MM/AAAA (Ej: 15/08/2026)")
+                    print("❌ Error: Formato DD/MM/AAAA.")
 
             p = Paciente(cedula, nombre, telefono, t_cliente, t_atencion, cantidad, prioridad, fecha)
             gestion.registrar_paciente(p)
@@ -147,10 +161,19 @@ def menu():
                 print("\nNo hay pacientes.")
             else:
                 reporte = sorted(gestion.lista_general, key=lambda x: x.valor_total, reverse=True)
-                print(f"\n{'NOMBRE':<20} | {'ATENCIÓN':<12} | {'TOTAL':<10}")
-                print("-" * 45)
+                
+                # --- DISEÑO DE CUADRO COMPACTO Y ORDENADO ---
+                print("\n" + "="*105)
+                print(f"{'NOMBRE':<15} | {'CÉDULA':<11} | {'ATENCIÓN':<11} | {'PRIORIDAD':<10} | {'FECHA':<11} | {'TOTAL':<8}")
+                print("-" * 105)
                 for p in reporte:
-                    print(f"{p.nombre[:20]:<20} | {p.tipo_atencion:<12} | ${p.valor_total:,}")
+                    # Si el nombre es muy largo, lo corta para que no desordene la fila
+                    nom_f = p.nombre[:14]
+                    pri_f = f"*{p.prioridad}*" if p.prioridad == "Urgente" else p.prioridad
+                    val_f = f"${p.valor_total:,}"
+                    
+                    print(f"{nom_f:<15} | {p.cedula:<11} | {p.tipo_atencion[:11]:<11} | {pri_f:<10} | {p.fecha_str:<11} | {val_f:<8}")
+                print("="*105)
 
 if __name__ == "__main__":
     menu()
