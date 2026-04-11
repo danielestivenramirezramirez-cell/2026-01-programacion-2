@@ -79,7 +79,7 @@ def menu():
     gestion = GestionOdontologica()
     
     while True:
-        print("\n=== SISTEMA CONSULTORIO ODONTOLÓGICO PRO ===")
+        print("\n=== SISTEMA CONSULTORIO ODONTOLÓGICO ===")
         print("1. Registrar nuevo paciente (Añadir a Agenda)")
         print("2. Generar Plan de Contingencia (Pila de Urgencias)")
         print("3. Atender siguiente paciente (Cola Diaria)")
